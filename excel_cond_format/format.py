@@ -1,12 +1,19 @@
-filename = ""
+#! /usr/bin/python
+
+import sys
+
+filename = sys.argv[1]
 offset = 3
-start_col = 1
+start_col = 2
 end_col = 116
+start_row = sys.argv[2]
+end_row = sys.argv[3]
+
 
 s = open(filename).read()
 insert_position = len(s) - s.find("<pageMargins")
 s[-insert_position:]
->>> def col_id(idx):
+def col_id(idx):
     if idx < 1:
         raise ValueError("Index is too small")
     result = ""
@@ -19,11 +26,11 @@ s[-insert_position:]
 
         
 formatting = """
-<conditionalFormatting sqref="%(col)s6:%(col)s143">
+<conditionalFormatting sqref="%(col)s%(start_row)s:%(col)s%(end_row)s">
     <cfRule type="colorScale" priority="1">
       <colorScale>
         <cfvo type="min"/>
-        <cfvo type="percentile" val="50"/>
+        <cfvo type="formula" val="$%(col)s$3"/>
         <cfvo type="max"/>
         <color rgb="FF008000"/>
         <color theme="0"/>
@@ -31,6 +38,6 @@ formatting = """
       </colorScale>
     </cfRule>
   </conditionalFormatting>"""
-new_data = s[:-insert_position] + "\n".join(formatting % dict(col=col_id(i+offset)) for i in xrange(start_col,end_col+1)) + s[-insert_position:]
+new_data = s[:-insert_position] + "\n".join(formatting % dict(start_row=start_row, end_row=end_row, col=col_id(i+offset)) for i in xrange(start_col,end_col+1)) + s[-insert_position:]
 open(filename, 'w').write(new_data)
 
