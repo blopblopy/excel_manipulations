@@ -2,17 +2,9 @@
 
 import sys
 
-filename = sys.argv[1]
-offset = 3
-start_col = 2
-end_col = 116
-start_row = sys.argv[2]
-end_row = sys.argv[3]
+def col2int(s):
+    return sum(26**i*(ord(c) - ord('A') +1) for i,c in enumerate(reversed(s)))
 
-
-s = open(filename).read()
-insert_position = len(s) - s.find("<pageMargins")
-s[-insert_position:]
 def col_id(idx):
     if idx < 1:
         raise ValueError("Index is too small")
@@ -38,6 +30,24 @@ formatting = """
       </colorScale>
     </cfRule>
   </conditionalFormatting>"""
-new_data = s[:-insert_position] + "\n".join(formatting % dict(start_row=start_row, end_row=end_row, col=col_id(i+offset)) for i in xrange(start_col,end_col+1)) + s[-insert_position:]
-open(filename, 'w').write(new_data)
+
+def main():
+    filename = sys.argv[1]
+    start_col = col2int(sys.argv[2])
+    end_col = col2int(sys.argv[3])
+    start_row = sys.argv[4]
+    end_row = sys.argv[5]
+
+    s = open(filename).read()
+    insert_position = len(s) - s.find("<pageMargins")
+    
+    conditional_formatting =  "\n".join(formatting % dict(start_row=start_row, end_row=end_row, col=col_id(i))
+                                        for i in xrange(start_col, end_col+1))
+
+    new_data = s[:-insert_position] + conditional_formatting + s[-insert_position:]
+    open(filename, 'w').write(new_data)
+
+
+if __name__ == "__main__":
+    main()
 
