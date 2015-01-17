@@ -24,9 +24,9 @@ formatting = """
         <cfvo type="min"/>
         <cfvo type="formula" val="$%(col)s$3"/>
         <cfvo type="max"/>
-        <color rgb="FF008000"/>
+        <color rgb="FF0000FF"/>
         <color theme="0"/>
-        <color rgb="FFFFFF00"/>
+        <color rgb="FFFF00FF"/>
       </colorScale>
     </cfRule>
   </conditionalFormatting>"""
