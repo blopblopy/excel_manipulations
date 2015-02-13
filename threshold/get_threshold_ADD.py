@@ -59,11 +59,11 @@ def print_threshold(f1, f2, attrib, mdata, fdata):
     if fexp <= mexp:
         threshold, mpercent, fpercent = get_threshold_percent(mdata, fdata)
         f1.write("{attrib}: below {threshold} is 'female'. {mpercent} male is 'female', {fpercent} female is 'male'\n".format(**vars()))
-        f2.write("{attrib}, {threshold}, female\n".format(**vars()))
+        f2.write("'{attrib}',{threshold},female\n".format(**vars()))
     else:
         threshold, fpercent, mpercent = get_threshold_percent(fdata, mdata)
         f1.write("{attrib}: below {threshold} is 'male'. {fpercent} female is 'male', {mpercent} male is 'female'\n".format(**vars()))
-        f2.write("{attrib}, {threshold}, male\n".format(**vars()))
+        f2.write("'{attrib}',{threshold},male\n".format(**vars()))
         
 def main_behavioral():
     FILE = sys.argv[1] 
@@ -125,12 +125,12 @@ def print_extreme_threshold(f1, f2, attrib, mdata, fdata):
         fthreshold, fdict = get_threshold_from_percent(fdata)
         mthreshold, mdict = get_threshold_from_percent(mdata, from_right=True)
         f1.write("{attrib}: female extreme is below {fthreshold:.2f}, male extreme is above {mthreshold:.2f} ({fdict}, {mdict}).\n".format(**vars()))
-        f2.write("{attrib},{fthreshold},0,{mthreshold},1\n".format(**vars()))
+        f2.write("'{attrib}',{fthreshold},0,{mthreshold},1\n".format(**vars()))
     else:
         fthreshold, fdict = get_threshold_from_percent(fdata, from_right=True)
         mthreshold, mdict = get_threshold_from_percent(mdata)
         f1.write("{attrib}: female extreme is above {fthreshold:.2f}, male extreme is below {mthreshold:.2f} ({fdict}, {mdict}).\n".format(**vars()))
-        f2.write("{attrib},{fthreshold},1,{mthreshold},0\n".format(**vars()))
+        f2.write("'{attrib}',{fthreshold},1,{mthreshold},0\n".format(**vars()))
 
 
 def main_extremelly_sex_typed():
