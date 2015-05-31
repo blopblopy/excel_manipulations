@@ -69,7 +69,7 @@ def main_behavioral():
     FILE = sys.argv[1] 
     SEX_ATTRIBUTE = 'bio_sex'
     MALE, FEMALE = '1', '2'
-    NOT_ATTRIBUTE = '', SEX_ATTRIBUTE
+    NOT_ATTRIBUTE = 'subj', '', SEX_ATTRIBUTE, 'sex', 'sex_numeric', 'age', 'handedness', 'handedness_numeric'
     
     data = DictReader(open(FILE))
 

@@ -22,19 +22,19 @@ formatting = """
     <cfRule type="colorScale" priority="1">
       <colorScale>
         <cfvo type="min"/>
-        <cfvo type="formula" val="$%(col)s$3"/>
+        <cfvo type="formula" val="$%(col)s$11"/>
         <cfvo type="max"/>
-        <color rgb="FF0000FF"/>
+        <color rgb="FFFFFF00"/>
         <color theme="0"/>
-        <color rgb="FFFF00FF"/>
+        <color rgb="FF008000"/>
       </colorScale>
     </cfRule>
   </conditionalFormatting>"""
 
 def main():
     filename = sys.argv[1]
-    start_col = col2int(sys.argv[2])
-    end_col = col2int(sys.argv[3])
+    start_col = int(sys.argv[2]) #col2int(sys.argv[2])
+    end_col = int(sys.argv[3]) #col2int(sys.argv[3])
     start_row = sys.argv[4]
     end_row = sys.argv[5]
 
