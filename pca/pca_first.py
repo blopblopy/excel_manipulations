@@ -43,7 +43,7 @@ def do_pcas(data, label):
 def score_against(base, other):
     pca = PCA(0.75)
     scores = (pca.fit(base).score_samples(other))
-    return min(scores), max(scores)
+    return scores #min(scores), max(scores)
 
 
 def parse_file(filename):
@@ -91,6 +91,26 @@ def random_data(filename, together):
     
     
 
+class FileData(object):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def read_data(self):
+        self.together, self.women, self.men = self.parse_file(self.filename)
+
+
+def bucketize(data, step = 10):
+    from collections import OrderedDict
+    from itertools import groupby
+    data = sorted(data)
+    d = OrderedDict(
+       (x, len(list(g))) for x, g in groupby(data, lambda x: int(x/step)*step))
+
+    plt.bar(d.keys(), d.values())
+    
+
+
+
 
 def do_file(filename):
     print "============ %s ===========" % filename
@@ -101,19 +121,33 @@ def do_file(filename):
     do_pcas(women, "WOMEN")
     do_pcas(men, "MEN")
 
-    do_draw(men, women, filename)
+    #do_draw(men, women, filename)
 
-    random_data(filename, together)
+    #random_data(filename, together)
+    plt.figure(filename)
     
+    ax = plt.subplot(221)
+    ax.set_title("women scored on men")
+    f_on_m = score_against(men, women)
+    bucketize(f_on_m)
+
+    ax = plt.subplot(222)
+    ax.set_title("men scored on men")
+
+    m_on_m = score_against(men, men)
+    bucketize(m_on_m)
+
+    ax = plt.subplot(223)
+    ax.set_title("men scored on women")
 
     m_on_f = score_against(women, men)
-    print m_on_f
-    f_on_m = score_against(men, women)
-    print f_on_m
-    m_on_m = score_against(men, men)
-    print m_on_m
+    bucketize(m_on_f)
+    ax = plt.subplot(224)
+    ax.set_title("women scored on women")
+
+
     f_on_f = score_against(women, women)
-    print f_on_f
+    bucketize(f_on_f)
     
     print
     print
