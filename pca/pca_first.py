@@ -157,16 +157,20 @@ def do_file(filename):
 do_file("israeli_brain.csv")
 do_file("VBM.csv")
 plt.show()
+
 # create f on f, m on m
 # graph 3 components with colors
 # create seperate groups using minimum/maximum data.
 # understand what the components are
 
 # PCA!
-# understand what the score_samples calculates
 # check the number of men vs women that fit certain thresholds of scoring.
+
+# understand what the score_samples calculates
 # check jonathan's svd
-# read about GMM - and some basic runs.   
+# read about GMM - and some basic runs.
+
+# give random sex and run same analysis on data
 
 
 
