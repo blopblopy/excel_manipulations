@@ -1,158 +1,154 @@
 import csv
-import numpy as np
-from sklearn.decomposition import PCA
-
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+from math import ceil
 import random
 
+import numpy as np
+from sklearn.decomposition import PCA
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+ 
 
-def draw(men, women, filename):
-    fig = plt.figure(filename)
-    ax = fig.add_subplot(111, projection='3d')
-    for man_x,man_y,man_z in men:
-        ax.scatter(man_x, man_y, man_z, c="g", marker="^")
-    for woman_x,woman_y,woman_z in women:
-        ax.scatter(woman_x, woman_y, woman_z, c="r", marker="o")
-        
+class Plot(object):
+    def __init__(self, label, max_per_row=1):
+        self.figure = plt.figure(label)
+        self.count = 0
+        self.max_per_row = max_per_row
 
+    def add_subplot(self, **kwargs):
+        self.count += 1
+        dim = int(ceil(float(self.count)/self.max_per_row))
+        # change former graphs
+        for index, ax in enumerate(self.figure.axes, start=1):
+            ax.change_geometry(self.max_per_row, dim, index)
 
-def do_draw(men, women, filename):
-    pca = PCA(3)
-    together = []
-    together.extend(men)
-    together.extend(women)
-    pca.fit(together)
-    draw(pca.transform(men), pca.transform(women), filename)
+        return self.figure.add_subplot(self.max_per_row, dim, self.count, **kwargs)
 
-def do_pca(pca, data):
-    pca.fit(data)
-    print(pca.explained_variance_ratio_)
-    print(pca.n_components_)
-    
-def do_pcas(data, label):
-    print ("======= START %s %d ======" % (label, len(data)))
-    #mle_pca = PCA("mle")
-    #do_pca(mle_pca, data)
-    half_pca = PCA(0.75)
-    do_pca(half_pca, data)
-    print ("======= END %s ==========" % label)
-    return half_pca
-    
-
-def score_against(base, other):
-    pca = PCA(0.75)
-    scores = (pca.fit(base).score_samples(other))
-    return scores #min(scores), max(scores)
-
-
-def parse_file(filename):
-    women = []
-    men = []
-    r = csv.reader(file(filename, "rU"))
-    r.next()
-    for line in r:
-        sex = line[1]
-        try:
-            data = [float(x) for x in line[2:]]
-        except:
-            continue
-        if sex == "2":
-            women.append(data)
-        else:
-            men.append(data)
-    
-    together = np.array(women + men)
-    women_data = np.array(women)
-    men_data = np.array(men)
-    return together, women, men
-
-
-def random_data(filename, together):
-    data_high = []
-    data_low = []
-    for element in np.transpose(together):
-        so = sorted(element)
-        high = so[:len(so)/2]
-        low = so[len(so)/2:]
-        random.shuffle(high)
-        random.shuffle(low)
-        data_high.append(high)
-        data_low.append(low)
-
-    data_high = np.transpose(data_high)
-    data_low = np.transpose(data_low)
-
-    print "RANDOM"
-    print(score_against(data_high, data_low))
-    print(score_against(data_low, data_high))
-    do_draw(data_high, data_low, filename + " - RANDOM")
-    
-    
-    
 
 class FileData(object):
     def __init__(self, filename):
         self.filename = filename
+        self.figure = Plot(filename)
+        self.bar_figure = Plot(filename + "-bars", 2)
 
-    def read_data(self):
-        self.together, self.women, self.men = self.parse_file(self.filename)
+    def parse_file(self):
+        women = []
+        men = []
+        r = csv.reader(open(self.filename, "rU"))
+        # remove header
+        r.next()
+        for line in r:
+            sex = line[1]
+            try:
+                data = [float(x) for x in line[2:]]
+            except:
+                continue
+            if sex == "2":
+                women.append(data)
+            else:
+                men.append(data)
+        
+        self.together = np.array(women + men)
+        self.women = np.array(women)
+        self.men = np.array(men)
+
+    def do_pca(self, pca, data):
+        pca.fit(data)
+        print(pca.explained_variance_ratio_)
+        print(pca.n_components_)
+
+    def do_pcas(self, data, label):
+        print ("======= START %s %d ======" % (label, len(data)))
+        #mle_pca = PCA("mle")
+        #do_pca(mle_pca, data)
+        half_pca = PCA(0.75)
+        self.do_pca(half_pca, data)
+        print ("======= END %s ==========" % label)
+        return half_pca
+
+    def all_pcas(self):
+        print "============ %s ===========" % self.filename
+        self.do_pcas(self.together, "TOGETHER")
+        self.do_pcas(self.women, "WOMEN")
+        self.do_pcas(self.men, "MEN")
+
+    def pca3(self, together, men, women):
+        pca = PCA(3)
+        pca.fit(together)
+        return pca.transform(men), pca.transform(women)
+
+    def draw_3d(self):
+        men, women = self.pca3(self.together, self.men, self.women)
+        self.draw(men, women, "3D view")
+
+    def draw_general_3d(self, men, women, label):
+        together = []
+        together.extend(men)
+        together.extend(women)
+        men3, women3 = self.pca3(together, men, women)
+        self.draw(men3, women3, label)
+
+    def draw(self, men, women, label):
+        ax = self.figure.add_subplot(projection='3d')
+        ax.set_title(label)
+        for man_x,man_y,man_z in men:
+            ax.scatter(man_x, man_y, man_z, c="g", marker="^")
+        for woman_x,woman_y,woman_z in women:
+            ax.scatter(woman_x, woman_y, woman_z, c="r", marker="o")
+
+    def random_data(self):
+        data_high = []
+        data_low = []
+        for element in np.transpose(self.together):
+            so = sorted(element)
+            high = so[:len(so)/2]
+            low = so[len(so)/2:]
+            random.shuffle(high)
+            random.shuffle(low)
+            data_high.append(high)
+            data_low.append(low)
+
+        data_high = np.transpose(data_high)
+        data_low = np.transpose(data_low)
+
+        self.draw_general_3d(data_high, data_low, "3D sorted RANDOM")
+
+    def score_against(self, base, other):
+        pca = PCA(0.75)
+        scores = pca.fit(base).score_samples(other)
+        return scores
 
 
-def bucketize(data, step = 10):
-    from collections import OrderedDict
-    from itertools import groupby
-    data = sorted(data)
-    d = OrderedDict(
-       (x, len(list(g))) for x, g in groupby(data, lambda x: int(x/step)*step))
+    def bucketize(self, data, step = 10):
+        from collections import OrderedDict
+        from itertools import groupby
+        data = sorted(data)
+        d = OrderedDict(
+           (x, len(list(g))) for x, g in groupby(data, lambda x: int(x/step)*step))
+        return d.keys(), d.values()
 
-    plt.bar(d.keys(), d.values())
-    
+    def draw_bar(self, first, second, label):
+        data = self.score_against(first, second)
+        x, y = self.bucketize(data)
+        ax = self.bar_figure.add_subplot()
+        ax.set_title(label)
+        ax.bar(x, y)
 
+    def draw_bars(self):
+        self.draw_bar(self.men, self.women, "women scored on men")
+        self.draw_bar(self.men, self.men, "men scored on men")
+
+        self.draw_bar(self.women, self.men, "men scored on women")
+        self.draw_bar(self.women, self.women, "women scored on women")
 
 
 
 def do_file(filename):
-    print "============ %s ===========" % filename
-
-    together, women, men = parse_file(filename)
-
-    do_pcas(together, "TOGETHER")
-    do_pcas(women, "WOMEN")
-    do_pcas(men, "MEN")
-
-    #do_draw(men, women, filename)
-
-    #random_data(filename, together)
-    plt.figure(filename)
-    
-    ax = plt.subplot(221)
-    ax.set_title("women scored on men")
-    f_on_m = score_against(men, women)
-    bucketize(f_on_m)
-
-    ax = plt.subplot(222)
-    ax.set_title("men scored on men")
-
-    m_on_m = score_against(men, men)
-    bucketize(m_on_m)
-
-    ax = plt.subplot(223)
-    ax.set_title("men scored on women")
-
-    m_on_f = score_against(women, men)
-    bucketize(m_on_f)
-    ax = plt.subplot(224)
-    ax.set_title("women scored on women")
-
-
-    f_on_f = score_against(women, women)
-    bucketize(f_on_f)
-    
-    print
-    print
-    print
-
+    f = FileData(filename)
+    f.parse_file()
+    f.all_pcas()
+    f.draw_3d()
+    f.random_data()
+    f.draw_bars()
 
 do_file("israeli_brain.csv")
 do_file("VBM.csv")
