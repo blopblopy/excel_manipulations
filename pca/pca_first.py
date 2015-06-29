@@ -3,6 +3,8 @@ from math import ceil
 import random
 
 import numpy as np
+from sklearn import mixture
+from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -71,6 +73,11 @@ class FileData(object):
         self.do_pcas(self.women, "WOMEN")
         self.do_pcas(self.men, "MEN")
 
+    def whiten_pca(self):
+        whiten = PCA(0.75, whiten=True)
+        self.do_pca(whiten, self.together)
+        
+
     def pca3(self, together, men, women):
         pca = PCA(3)
         pca.fit(together)
@@ -94,6 +101,11 @@ class FileData(object):
             ax.scatter(man_x, man_y, man_z, c="g", marker="^")
         for woman_x,woman_y,woman_z in women:
             ax.scatter(woman_x, woman_y, woman_z, c="r", marker="o")
+
+    def random_label(self):
+        together = sorted(self.together, key=lambda x:random.random)
+        men, women = self.pca3(self.together, together[::2], together[1::2])
+        self.draw(men, women, "random label")
 
     def random_data(self):
         data_high = []
@@ -140,19 +152,45 @@ class FileData(object):
         self.draw_bar(self.women, self.men, "men scored on women")
         self.draw_bar(self.women, self.women, "women scored on women")
 
+    def do_gmm(self):
+        men_gmm = mixture.GMM(n_components=3, covariance_type="full")
+        men_gmm.fit(self.men)
+        print men_gmm.score(self.women)
+
+    def do_svc(self):
+        svc = SVC()
+        men_train, men_test = np.array_split(self.men, [0.75*len(self.men)])
+        women_train, women_test = np.array_split(self.women, [0.75*len(self.women)])
+        svc.fit(
+            np.concatenate((men_train, women_train)
+                ),
+            np.concatenate(
+                [[1]*len(men_train), [2]*len(women_train)]
+                )
+            )
+        print svc
+        print svc.predict(women_test)
+        print svc.predict(men_test)
+        print svc.predict(men_train), len(men_train)
+        print svc.predict(women_train), len(women_train)
 
 
 def do_file(filename):
     f = FileData(filename)
     f.parse_file()
     f.all_pcas()
-    f.draw_3d()
-    f.random_data()
-    f.draw_bars()
+    f.whiten_pca()
+    #f.draw_3d()
+    #f.random_data()
+    #f.random_label()
+    #f.draw_bars()
+    #f.do_gmm()
+    f.do_svc()
 
-do_file("israeli_brain.csv")
+
+#do_file("israeli_brain.csv")
 do_file("VBM.csv")
-plt.show()
+#plt.show()
 
 # create f on f, m on m
 # graph 3 components with colors
