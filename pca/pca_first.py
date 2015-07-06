@@ -10,6 +10,12 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
  
 
+class BarData(object):
+    def __init__(self, x, y, label):
+        self.label = label
+        self.x = x
+        self.y = y
+
 class Plot(object):
     def __init__(self, label, max_per_row=1):
         self.figure = plt.figure(label)
@@ -27,6 +33,7 @@ class Plot(object):
 
 
 class FileData(object):
+    WOMEN_SEX = "2"
     def __init__(self, filename):
         self.filename = filename
         self.figure = Plot(filename)
@@ -44,7 +51,7 @@ class FileData(object):
                 data = [float(x) for x in line[2:]]
             except:
                 continue
-            if sex == "2":
+            if sex == FileData.WOMEN_SEX:
                 women.append(data)
             else:
                 men.append(data)
@@ -134,23 +141,40 @@ class FileData(object):
         from collections import OrderedDict
         from itertools import groupby
         data = sorted(data)
+        data_len = float(len(data))/100
         d = OrderedDict(
-           (x, len(list(g))) for x, g in groupby(data, lambda x: int(x/step)*step))
+           (x, len(list(g))/data_len) for x, g in groupby(data, lambda x: int(x/step)*step))
         return d.keys(), d.values()
 
-    def draw_bar(self, first, second, label):
+
+    def bar_data(self, first, second, label):
         data = self.score_against(first, second)
         x, y = self.bucketize(data)
+        return BarData(x, y, label)
+
+
+    def draw_bar(self, xlim, ylim, bar_data):
         ax = self.bar_figure.add_subplot()
-        ax.set_title(label)
-        ax.bar(x, y)
+        ax.set_title(bar_data.label)
+        ax.bar(bar_data.x, bar_data.y)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
 
     def draw_bars(self):
-        self.draw_bar(self.men, self.women, "women scored on men")
-        self.draw_bar(self.men, self.men, "men scored on men")
+        datum = [
+        self.bar_data(self.men, self.women, "women scored on men"),
+        self.bar_data(self.men, self.men, "men scored on men"),
 
-        self.draw_bar(self.women, self.men, "men scored on women")
-        self.draw_bar(self.women, self.women, "women scored on women")
+        self.bar_data(self.women, self.men, "men scored on women"),
+        self.bar_data(self.women, self.women, "women scored on women")
+        ]
+        max_x = [min(int(x) for data in datum for x in data.x)-10, max(int(x) for data in datum for x in data.x)+10]
+        max_y = [0, max(int(y) for data in datum for y in data.y)*1.1]
+        print max_x, max_y
+        for data in datum:
+            self.draw_bar(max_x, max_y, data)
+
+        
 
     def do_gmm(self):
         men_gmm = mixture.GMM(n_components=3, covariance_type="full")
@@ -178,19 +202,19 @@ class FileData(object):
 def do_file(filename):
     f = FileData(filename)
     f.parse_file()
-    f.all_pcas()
-    f.whiten_pca()
-    #f.draw_3d()
-    #f.random_data()
-    #f.random_label()
-    #f.draw_bars()
-    #f.do_gmm()
-    f.do_svc()
+#    f.all_pcas()
+#    f.whiten_pca()
+#    f.draw_3d()
+#    f.random_data()
+#    f.random_label()
+    f.draw_bars()
+#    f.do_gmm()
+#    f.do_svc()
 
 
 #do_file("israeli_brain.csv")
 do_file("VBM.csv")
-#plt.show()
+plt.show()
 
 # create f on f, m on m
 # graph 3 components with colors
@@ -205,6 +229,7 @@ do_file("VBM.csv")
 # read about GMM - and some basic runs.
 
 # give random sex and run same analysis on data
+# bootstraping on group pca - men, women on each other. graph and show where the original data lays.
 
-
+# moshe's separation! - validity against random data - bootstrap the data.
 
