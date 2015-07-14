@@ -8,7 +8,8 @@ from sklearn.svm import SVC
 from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
- 
+
+from scipy.stats import pointbiserialr as bin_corr 
 
 class BarData(object):
     def __init__(self, x, y, label):
@@ -44,9 +45,9 @@ class Plot(object):
         dim = int(ceil(float(self.count)/self.max_per_row))
         # change former graphs
         for index, ax in enumerate(self.figure.axes, start=1):
-            ax.change_geometry(self.max_per_row, dim, index)
+            ax.change_geometry(dim, self.max_per_row, index)
 
-        return self.figure.add_subplot(self.max_per_row, dim, self.count, **kwargs)
+        return self.figure.add_subplot(dim, self.max_per_row, self.count, **kwargs)
     
 
 class FileData(object):
@@ -198,7 +199,7 @@ class FileData(object):
         ]
         max_x = [min(int(x) for data in datum for x in data.x)-10, max(int(x) for data in datum for x in data.x)+10]
         max_y = [0, max(int(y) for data in datum for y in data.y)*1.1]
-        print max_x, max_y
+        #print max_x, max_y
         for data in datum:
             self.draw_bar(max_x, max_y, data)
 
@@ -294,8 +295,55 @@ class FileData(object):
     def pca_relabel(self):
         boot_women, boot_men = self.create_relabel()
         self.draw_general_3d(boot_women, boot_men, "relabel data")
+
+    def sex_pca_correlation(self):
+        pca = PCA(10)
+        pca.fit(self.together)
+        men = pca.transform(self.men)
+        women = pca.transform(self.women)
+        bin = [0]* len(men) + [1] *len(women)
+        for index in xrange(3):
+            print "index", index
+            print bin_corr(bin, np.concatenate((men[:,index], women[:,index])))
+        print
+        svc = SVC()
+        men_train, men_test = np.array_split(men, [0.75*len(self.men)])
+        women_train, women_test = np.array_split(women, [0.75*len(self.women)])
+        svc.fit(
+            np.concatenate((men_train, women_train)
+                ),
+            np.concatenate(
+                [[0]*len(men_train), [1]*len(women_train)]
+                )
+            )
+        print svc
+        print svc.predict(women_test), len(women_test), sum(svc.predict(women_test))
+        print svc.predict(men_test), len(men_test), sum(svc.predict(men_test))
+        print svc.predict(women_train), len(women_train), sum(svc.predict(women_train))
+        print svc.predict(men_train), len(men_train), sum(svc.predict(men_train))
+
     
+    def first_index_plot(self):
+        pca = PCA(1)
+        pca.fit(self.together)
+        men = pca.transform(self.men)
+        women = pca.transform(self.women)
+        total = []
+        for man in men:
+            total.append((man, dict(c="g", marker="^")))
+        for woman in women:
+            total.append((woman, dict(c="r", marker="v")))
+
+        total.sort()
+            
+        ax = self.figure.add_subplot()
+        for index, (y, props) in enumerate(total):
+            ax.scatter([50*index],[y], lw=0.0, **props)
+        ax.set_xlim([-100,len(total)*50+100])        
+
         
+        
+
         
 
 
@@ -304,40 +352,57 @@ def do_file(filename):
     f.parse_file()
 #    f.all_pcas()
 #    f.whiten_pca()
-    f.draw_3d()
+ #   f.draw_3d()
 #    f.random_data()
 #    f.random_label()
- #   f.draw_bars()
+#    f.draw_bars()
 #    f.do_gmm()
-#    f.do_svc()
+    f.do_svc()
 #    f.bootstrap()
 #    f.pca_boot_data()
 #    f.relabel()
-#    f.pca_relabel()         
+#    f.pca_relabel()
+    f.sex_pca_correlation()
+#    f.first_index_plot()
+    return f
 
 
-do_file("israeli_brain.csv")
-do_file("VBM.csv")
+israeli = do_file("israeli_brain.csv")
+vbm = do_file("VBM.csv")
+
+vbm.draw_bars()
+vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
+vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
+
+
 plt.show()
 
-# create f on f, m on m
-# graph 3 components with colors
-# create seperate groups using minimum/maximum data.
+
+
+
+
+# create f on f, m on m - done
+# graph 3 components with colors - done
+# create seperate groups using minimum/maximum data. - done
+
+
 # understand what the components are
-
-# PCA!
-
 # understand what the score_samples calculates
 # check jonathan's svd
 # read about GMM - and some basic runs.
 
-# give random sex and run same analysis on data
-# bootstraping on group pca - men, women on each other. graph and show where the original data lays.
+# give random sex and run same analysis on data - done
+# bootstrapping on group pca - men, women on each other. graph and show where the original data lay. - done
 
 # moshe's separation! - validity against random data - bootstrap the data.
 
-
-# check correlation between second pca and sex
+# check correlation between second pca and sex - done, index 0 is super significant
 # check the number of men vs women that fit certain thresholds of scoring.
-# check the middle group ditribution
+# check the middle group distribution
+
+# pca for women/men only check correlation with sex.
+# random european data and see correlation
+# correlations between european/israeli
+# randomize test/train on pca'd svm
+
  
