@@ -9,7 +9,22 @@ from sklearn.decomposition import PCA
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
-from scipy.stats import pointbiserialr as bin_corr 
+from scipy.stats import pointbiserialr
+
+
+def pca_bin_corr(group1, group2):
+    pca = PCA(3)
+    together = np.concatenate((group1, group2))
+    pca.fit(together)
+    g1 = pca.transform(group1)
+    g2 = pca.transform(group2)
+    for i in range(3):
+        print bin_corr(g1[:,i], g2[:,i])
+    
+
+def bin_corr(group1, group2):
+    bin = [0]* len(group1) + [1] *len(group2)
+    return pointbiserialr(bin, np.concatenate((group1, group2)))
 
 class BarData(object):
     def __init__(self, x, y, label):
@@ -281,7 +296,6 @@ class FileData(object):
         self.draw_general_3d(boot_women, boot_men, "booted data")
     
 
-
     def create_relabel(self):
         data = np.random.permutation(self.together)
         boot_women, boot_men = np.array_split(data, [len(self.women)])
@@ -300,13 +314,12 @@ class FileData(object):
 
     def sex_pca_correlation(self):
         pca = PCA(10)
-        pca.fit(self.together)
+        pca.fit(self.women) #together)
         men = pca.transform(self.men)
         women = pca.transform(self.women)
-        bin = [0]* len(men) + [1] *len(women)
         for index in xrange(3):
             print "index", index
-            print bin_corr(bin, np.concatenate((men[:,index], women[:,index])))
+            print bin_corr(men[:,index], women[:,index])
         print
         svc = SVC()
         men_test, men_train = np.array_split(men, [0.25*len(self.men)])
@@ -347,8 +360,8 @@ class FileData(object):
     def half_and_half(self):
         men_1, men_2 = np.array_split(self.men, [0.5*len(self.men)])
         women_1, women_2 = np.array_split(self.women, [0.5*len(self.women)])
-        mm = self.bar_data(men_1, men_2, "men vs men")
-        ww = self.bar_data(women_1, women_2, "women vs women")
+        mm = self.bar_data(men_1, men_2, "inner men vs men")
+        ww = self.bar_data(women_1, women_2, "inner women vs women")
         self.draw_bar([0, 250], [0, 35], mm)
         self.draw_bar([0, 250], [0, 35], ww)
 
@@ -379,11 +392,17 @@ def do_file(filename):
 
 israeli = do_file("israeli_brain.csv")
 vbm = do_file("VBM.csv")
-israeli.half_and_half()
+#israeli.half_and_half()
 vbm.half_and_half()
 #vbm.draw_bars()
-vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
-vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
+#vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
+#vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
+
+
+#israeli.draw_general_3d(israeli.together, vbm.together, "israeli vs european")
+pca_bin_corr(israeli.together, vbm.together)
+
+
 
 
 plt.show()
@@ -408,11 +427,12 @@ plt.show()
 # moshe's separation! - validity against random data - bootstrap the data.
 
 # check correlation between second pca and sex - done, index 0 is super significant
+
 # check the number of men vs women that fit certain thresholds of scoring.
 # check the middle group distribution
 
-# pca for women/men only check correlation with sex.
-# random european data and see correlation
+# pca for women/men only check correlation with sex - still correlated.
+# random european data and see correlation - so it seems like it's the same thing as before. interesting!
 # correlations between european/israeli
 # randomize test/train on pca'd svm - done, no extremely different results.
 
