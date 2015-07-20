@@ -74,7 +74,9 @@ class FileData(object):
                 women.append(data)
             else:
                 men.append(data)
-        
+
+        random.shuffle(women)
+        random.shuffle(men)
         self.together = np.array(women + men)
         self.women = np.array(women)
         self.men = np.array(men)
@@ -307,8 +309,8 @@ class FileData(object):
             print bin_corr(bin, np.concatenate((men[:,index], women[:,index])))
         print
         svc = SVC()
-        men_train, men_test = np.array_split(men, [0.75*len(self.men)])
-        women_train, women_test = np.array_split(women, [0.75*len(self.women)])
+        men_test, men_train = np.array_split(men, [0.25*len(self.men)])
+        women_test, women_train = np.array_split(women, [0.25*len(self.women)])
         svc.fit(
             np.concatenate((men_train, women_train)
                 ),
@@ -342,7 +344,14 @@ class FileData(object):
         ax.set_xlim([-100,len(total)*50+100])        
 
         
-        
+    def half_and_half(self):
+        men_1, men_2 = np.array_split(self.men, [0.5*len(self.men)])
+        women_1, women_2 = np.array_split(self.women, [0.5*len(self.women)])
+        mm = self.bar_data(men_1, men_2, "men vs men")
+        ww = self.bar_data(women_1, women_2, "women vs women")
+        self.draw_bar([0, 250], [0, 35], mm)
+        self.draw_bar([0, 250], [0, 35], ww)
+
 
         
 
@@ -352,25 +361,27 @@ def do_file(filename):
     f.parse_file()
 #    f.all_pcas()
 #    f.whiten_pca()
- #   f.draw_3d()
+#    f.draw_3d()
 #    f.random_data()
 #    f.random_label()
 #    f.draw_bars()
 #    f.do_gmm()
-    f.do_svc()
+#    f.do_svc()
 #    f.bootstrap()
 #    f.pca_boot_data()
 #    f.relabel()
 #    f.pca_relabel()
-    f.sex_pca_correlation()
+#    f.sex_pca_correlation()
 #    f.first_index_plot()
+#    f.half_and_half()
     return f
 
 
 israeli = do_file("israeli_brain.csv")
 vbm = do_file("VBM.csv")
-
-vbm.draw_bars()
+israeli.half_and_half()
+vbm.half_and_half()
+#vbm.draw_bars()
 vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
 vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
 
@@ -403,6 +414,6 @@ plt.show()
 # pca for women/men only check correlation with sex.
 # random european data and see correlation
 # correlations between european/israeli
-# randomize test/train on pca'd svm
+# randomize test/train on pca'd svm - done, no extremely different results.
 
  
