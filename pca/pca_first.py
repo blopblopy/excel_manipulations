@@ -10,7 +10,10 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
 from scipy.stats import pointbiserialr
+from scipy.stats import ttest_ind
 
+def ttest(A, B):
+    return ttest_ind(A, B, equal_var=False)
 
 def pca_bin_corr(group1, group2):
     pca = PCA(3)
@@ -20,6 +23,7 @@ def pca_bin_corr(group1, group2):
     g2 = pca.transform(group2)
     for i in range(3):
         print bin_corr(g1[:,i], g2[:,i])
+    print
     
 
 def bin_corr(group1, group2):
@@ -63,7 +67,30 @@ class Plot(object):
             ax.change_geometry(dim, self.max_per_row, index)
 
         return self.figure.add_subplot(dim, self.max_per_row, self.count, **kwargs)
-    
+
+
+from collections import defaultdict
+def parse_origin_file(filename):
+    origins = defaultdict(lambda:{'f':[], 'm':[]})
+    r = csv.reader(open(filename, "rU"))
+    # remove header
+    r.next()
+    limit = 5
+    for line in r:
+        subject, sex, handedness, age, origin = [x.strip().lower() for x in line[:limit]]
+        try:
+            data = [float(x) for x in line[limit:]]
+        except:
+            continue
+        origins[origin][sex].append(data)
+
+    res = {}
+    for origin, data in origins.iteritems():
+        tmp = FileData(origin)
+        tmp.create_data(data['f'], data['m'])
+        res[origin] = tmp
+    return res
+
 
 class FileData(object):
     WOMEN_SEX = "2"
@@ -89,7 +116,9 @@ class FileData(object):
                 women.append(data)
             else:
                 men.append(data)
+        self.create_data(women, men)
 
+    def create_data(self, women, men):
         random.shuffle(women)
         random.shuffle(men)
         self.together = np.array(women + men)
@@ -124,7 +153,9 @@ class FileData(object):
     def pca3(self, together, men, women):
         pca = PCA(3)
         pca.fit(together)
-        print(pca.explained_variance_ratio_)
+        #print(pca.explained_variance_ratio_)
+        #print(pca.mean_)
+        #print(pca.components_)
         return pca.transform(men), pca.transform(women)
 
     def draw_3d(self):
@@ -139,16 +170,16 @@ class FileData(object):
         self.draw(men3, women3, label)
 
     def draw(self, men, women, label):
-        ax = self.figure.add_subplot(projection='3d')
+#        ax = self.figure.add_subplot(projection='3d')
         bx = self.figure.add_subplot()
 
-        ax.set_title(label)
-        bx.set_title("2d")
+#        ax.set_title(label)
+        bx.set_title(label + "-2d")
         for man_x,man_y,man_z in men:
-            ax.scatter(man_x, man_y, man_z, c="g", marker="^")
+#            ax.scatter(man_x, man_y, man_z, c="g", marker="^")
             bx.scatter(man_x, man_y, c="g", marker="^")
         for woman_x,woman_y,woman_z in women:
-            ax.scatter(woman_x, woman_y, woman_z, c="r", marker="o")
+#            ax.scatter(woman_x, woman_y, woman_z, c="r", marker="o")
             bx.scatter(woman_x, woman_y, c="r", marker="o")
 
 
@@ -214,11 +245,15 @@ class FileData(object):
         self.bar_data(self.women, self.men, "men scored on women"),
         self.bar_data(self.women, self.women, "women scored on women")
         ]
+        lower, upper = 190, 260
+        
+        
         max_x = [min(int(x) for data in datum for x in data.x)-10, max(int(x) for data in datum for x in data.x)+10]
         max_y = [0, max(int(y) for data in datum for y in data.y)*1.1]
         #print max_x, max_y
         for data in datum:
             self.draw_bar(max_x, max_y, data)
+            print self.filename, data.label, sum(y for x,y in zip(data.x, data.y) if not(lower <= x <= upper))
 
         
 
@@ -393,15 +428,63 @@ def do_file(filename):
 israeli = do_file("israeli_brain.csv")
 vbm = do_file("VBM.csv")
 #israeli.half_and_half()
-vbm.half_and_half()
-#vbm.draw_bars()
+#vbm.half_and_half()
+israeli.draw_bars()
+vbm.draw_bars()
 #vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
 #vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
 
 
 #israeli.draw_general_3d(israeli.together, vbm.together, "israeli vs european")
-pca_bin_corr(israeli.together, vbm.together)
+#israeli.draw_general_3d(israeli.men, vbm.men, "men - israeli vs european")
+#israeli.draw_general_3d(israeli.women, vbm.women, "women - israeli vs european")
 
+#pca_bin_corr(israeli.together, vbm.together)
+#pca_bin_corr(israeli.men, vbm.men)
+#pca_bin_corr(israeli.women, vbm.women)
+
+#pca_bin_corr(israeli.men, israeli.women)
+#pca_bin_corr(vbm.men, vbm.women)
+
+alpha = 0.0005
+
+print "vbm vs israel", sum(x>alpha for x in ttest(israeli.together, vbm.together)[-1])
+
+
+origins = parse_origin_file("VBM_origin.csv")
+
+chosen = "oulu,beijing_zang,icbm,cambridge_buckner".split(",")
+def run_against_israel():
+    for choice in chosen:
+        choice_data = origins[choice]
+        title = "israeli vs %s" % choice
+        choice_data.draw_general_3d(israeli.together, choice_data.together, title)
+        choice_data.draw_general_3d(israeli.men, choice_data.men, "men - %s" % title)
+        choice_data.draw_general_3d(israeli.women, choice_data.women, "women - %s" % title)
+        choice_data.draw_bar([0,250], [0,35], choice_data.bar_data(choice_data.men, israeli.men, "men - %s" % title))
+        choice_data.draw_bar([0,250], [0,35], choice_data.bar_data(choice_data.women, israeli.women, "women - %s" % title))
+        print 'men - ' + title, sum(x>alpha for x in ttest(israeli.men, choice_data.men)[-1])
+        print 'women - ' + title, sum(x>alpha for x in ttest(israeli.women, choice_data.women)[-1])
+
+#run_against_israel()
+
+
+from itertools import permutations
+def run_on_each_other():
+    for c1, c2 in permutations(chosen, 2):
+        title = "%(c1)s vs %(c2)s" % vars()
+        c1data, c2data = origins[c1], origins[c2]
+        n1m, n1w = len(c1data.men), len(c1data.women)
+        n2m, n2w = len(c2data.men), len(c2data.women) 
+
+        graph = FileData(title)
+        graph.draw_bar([0,250], [0,35], graph.bar_data(c1data.men, c2data.men, "men - %(n1m)d/%(n2m)d" % vars()))
+        graph.draw_bar([0,250], [0,35], graph.bar_data(c1data.women, c2data.women, "women - %(n1w)d/%(n2w)d" % vars()))
+        print "men - " + title, sum(x>alpha for x in ttest(c1data.men, c2data.men)[-1])
+        print "women - " + title, sum(x>alpha for x in ttest(c1data.women, c2data.women)[-1])
+
+
+#run_on_each_other()
 
 
 
@@ -428,12 +511,19 @@ plt.show()
 
 # check correlation between second pca and sex - done, index 0 is super significant
 
-# check the number of men vs women that fit certain thresholds of scoring.
-# check the middle group distribution
-
 # pca for women/men only check correlation with sex - still correlated.
 # random european data and see correlation - so it seems like it's the same thing as before. interesting!
-# correlations between european/israeli
+# correlations between european/israeli - there is evidence for difference
 # randomize test/train on pca'd svm - done, no extremely different results.
+
+# take the database origins from zohar.
+# T test for means - means are not similiar! =O
+# check the number of men vs women that fit certain thresholds of scoring.
+
+
+# Amir - unsupervised non-linear dimension reduction
+# estimate the difference in the pca components
+# check the middle group distribution
+ 
 
  
