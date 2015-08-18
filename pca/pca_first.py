@@ -253,7 +253,7 @@ class FileData(object):
         #print max_x, max_y
         for data in datum:
             self.draw_bar(max_x, max_y, data)
-            print self.filename, data.label, sum(y for x,y in zip(data.x, data.y) if not(lower <= x <= upper))
+            print "###", self.filename, data.label, sum(y for x,y in zip(data.x, data.y) if not(lower <= x <= upper))
 
         
 
@@ -430,7 +430,7 @@ vbm = do_file("VBM.csv")
 #israeli.half_and_half()
 #vbm.half_and_half()
 israeli.draw_bars()
-vbm.draw_bars()
+#vbm.draw_bars()
 #vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.men, israeli.men, "men - israeli on vbm"))
 #vbm.draw_bar([0,250], [0,35], vbm.bar_data(vbm.women, israeli.women, "women - israeli on vbm"))
 
@@ -448,25 +448,26 @@ vbm.draw_bars()
 
 alpha = 0.0005
 
-print "vbm vs israel", sum(x>alpha for x in ttest(israeli.together, vbm.together)[-1])
+#print "vbm vs israel", sum(x>alpha for x in ttest(israeli.together, vbm.together)[-1])
 
 
 origins = parse_origin_file("VBM_origin.csv")
 
-chosen = "oulu,beijing_zang,icbm,cambridge_buckner".split(",")
+chosen = "beijing_zang,cambridge_buckner".split(",")
 def run_against_israel():
     for choice in chosen:
         choice_data = origins[choice]
-        title = "israeli vs %s" % choice
-        choice_data.draw_general_3d(israeli.together, choice_data.together, title)
-        choice_data.draw_general_3d(israeli.men, choice_data.men, "men - %s" % title)
-        choice_data.draw_general_3d(israeli.women, choice_data.women, "women - %s" % title)
+        title = "israeli vs %s=%d/%d/%d" % (choice, len(choice_data.together), len(choice_data.women), len(choice_data.men))
+        #choice_data.draw_general_3d(israeli.together, choice_data.together, title)
+        #choice_data.draw_general_3d(israeli.men, choice_data.men, "men - %s" % title)
+        #choice_data.draw_general_3d(israeli.women, choice_data.women, "women - %s" % title)
         choice_data.draw_bar([0,250], [0,35], choice_data.bar_data(choice_data.men, israeli.men, "men - %s" % title))
         choice_data.draw_bar([0,250], [0,35], choice_data.bar_data(choice_data.women, israeli.women, "women - %s" % title))
+        choice_data.draw_bars()
         print 'men - ' + title, sum(x>alpha for x in ttest(israeli.men, choice_data.men)[-1])
         print 'women - ' + title, sum(x>alpha for x in ttest(israeli.women, choice_data.women)[-1])
 
-#run_against_israel()
+run_against_israel()
 
 
 from itertools import permutations
@@ -517,7 +518,7 @@ plt.show()
 # randomize test/train on pca'd svm - done, no extremely different results.
 
 # take the database origins from zohar.
-# T test for means - means are not similiar! =O
+# T test for means - means are not similiar! =O - let's try ANOVA israel vs cambidge vs bejing
 # check the number of men vs women that fit certain thresholds of scoring.
 
 
