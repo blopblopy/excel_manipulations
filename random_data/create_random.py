@@ -7,6 +7,11 @@ from itertools import combinations
 
 
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
+from matplotlib.ticker import *
+
 from scipy.stats import chisquare, pearsonr
 
 mw = 0.17979798,0.161616162,0.145454545,0.147474747,0.17979798,0.155555556,0.16969697,0.18989899,0.185858586,0.139393939
@@ -31,10 +36,9 @@ def check_chi(length, percent):
 
 def create_rand(percent, length=LENGTH):
     mix = length*percent/100
-    return sorted(range(length), key=lambda x:x+randrange(-mix, mix+1))
+    return list(x+randrange(-mix, mix+1) for  x in xrange(length))
 
 def create_rand2(percent, length=LENGTH):
-    #mix = sorted(range(length), key=lambda x:random.random())
     return [((100-percent)*i+percent*random.randrange(length))/100. for i in xrange(length)]
 
 
@@ -75,16 +79,18 @@ def bubble(count_data, color='red'):
         x.append(k[0])
         y.append(k[1])
         sizes.append(v)
-    plt.scatter(x, y, s=sizes, edgecolors=color, facecolors='none')
+    plt.scatter(x, y, s=sizes, edgecolors=color, linewidths=2 ,facecolors='none')
 
 def count_props(counter):
     l = LENGTH/100.
-    return dict(
+    d = dict(
     womanly = counter[(FEATURES, 0)]/l,
     manly = counter[(0, FEATURES)]/l,
     intersex = counter[(0, 0)]/l,
-    mixed = sum(v for k, v in counter.iteritems() if 0 not in k)/l
     )
+    d['consistent'] = sum(d.values())
+    d['mixed'] = sum(v for k, v in counter.iteritems() if 0 not in k)/l
+    return d
 
 def avg_correlation(vectors):
     length = len(vectors)
@@ -92,13 +98,42 @@ def avg_correlation(vectors):
     return {'average correlation':sum(pearsonr(v1, v2)[0] for v1, v2 in combinations(vectors, 2))/n}
         
 
-def one_run(women_vectors, men_vectors, percent):
+def graph_data(women_count, men_count, title):
+    num = 10
+    limit = num + 1
+    
+    fig = plt.figure(title, tight_layout=True)
+    ax = plt.subplot(111)
+##    ax.xticks(range(limit))
+##    ax.yticks(range(limit))
+
+    ax.set_xlim([-1, limit])
+    ax.set_ylim([-1,limit])
+    
+    ax.xaxis.set_major_locator( MultipleLocator(2) )
+    ax.xaxis.set_minor_locator( AutoMinorLocator(2) )
+    ax.yaxis.set_major_locator( MultipleLocator(2) )
+    ax.yaxis.set_minor_locator( AutoMinorLocator(2) )
+
+    
+    plt.tick_params(axis='both', which='major', labelsize=36)
+    plt.tick_params(axis='y', which='both', pad=10)
+
+
+    plt.grid(True, c="gray", linestyle="-", zorder=-1, which="both")
+    bubble(women_count, 'r')
+    bubble(men_count, 'g')
+    triangle = plt.Polygon([(0,limit),(limit,0), (limit, limit)], edgecolor='gray', facecolor='white', zorder=100)
+    fig.gca().add_patch(triangle)
+    plt.axes().set_aspect('equal')    
+
+    fig.savefig(title + ".bla.pdf")
+    
+
+def one_run(women_vectors, men_vectors, title):
     women = count_persons(*count_properties(mw, fw, women_vectors))
     men = count_persons(*count_properties(mm, fm, men_vectors))
-    title = "percent=%d" % percent
-    plt.figure(title)
-    bubble(women, 'r')
-    bubble(men, 'g')
+    graph_data(women, men, title)
     print title
     print 'women:', count_props(women), avg_correlation(women_vectors)
     print 'men:', count_props(men), avg_correlation(men_vectors)
@@ -106,15 +141,15 @@ def one_run(women_vectors, men_vectors, percent):
 
 
 def create_data():
-    for percent in (0, 25, 33, 50, 100): # , 200, 1000):
+    for percent in (0,): # 25, 33, 50, 100):
         women_vectors = [create_rand(percent=percent) for i in xrange(FEATURES)]
         men_vectors = [create_rand(percent=percent) for i in xrange(FEATURES)]
-        one_run(women_vectors, men_vectors, percent)
+        one_run(women_vectors, men_vectors, "mix-percent_%d" % percent)
 
 
 ##        women_vectors = [create_rand2(percent=percent) for i in xrange(FEATURES)]
 ##        men_vectors = [create_rand2(percent=percent) for i in xrange(FEATURES)]
-##        one_run(women_vectors, men_vectors, -percent)
+##        one_run(women_vectors, men_vectors, "average-percent_%d" % percent)
 
 
 ##    women_vectors = [random.sample(range(LENGTH), LENGTH) for i in xrange(FEATURES)]
